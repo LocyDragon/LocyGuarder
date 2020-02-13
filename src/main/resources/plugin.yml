@@ -1,0 +1,7 @@
+name: Bubbule
+main: com.locydragon.locyguarder.Bubble
+version: 1.0.0
+author: LocyDragon
+depend: [ProtocolLib]
+commands:
+  bubble:
