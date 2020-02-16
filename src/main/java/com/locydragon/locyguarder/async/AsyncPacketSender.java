@@ -167,6 +167,11 @@ public class AsyncPacketSender extends Thread {
             e.printStackTrace();
         }
 
+        try {
+            Thread.sleep(1000);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         PacketContainer container_Held = new PacketContainer(PacketType.Play.Server.HELD_ITEM_SLOT);
         container_Held.getIntegers().write(0, 8);
 
@@ -236,6 +241,7 @@ public class AsyncPacketSender extends Thread {
             Thread.sleep(Bubble.time * 1000);
             if (this.target != null) {
                 TemporaryPlayer.kickPlayer(this.target, Bubble.kickMsg);
+                ProtocolListenerAdder.remove(this.target);
             }
         } catch (InterruptedException e) {
             e.printStackTrace();

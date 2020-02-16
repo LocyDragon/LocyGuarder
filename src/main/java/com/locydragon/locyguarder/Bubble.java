@@ -33,5 +33,16 @@ public class Bubble extends JavaPlugin {
         manager = ProtocolLibrary.getProtocolManager();
         ProtocolListenerAdder.setUpPackets();
         ProtocolListenerAdder.addListener();
+        Bukkit.getLogger().info("=========================");
+        Bukkit.getLogger().info("欢迎使用Bubble反压测！！！");
+        Bukkit.getLogger().info("作者：绿毛");
+        Bukkit.getLogger().info("禁止白嫖~！快去评分~！");
+        Bukkit.getLogger().info("=========================");
+    }
+
+    public static void addSafePlayer(String who) {
+        safePlayers.add(who);
+        instance.getConfig().set("LegalPlayers", who);
+        instance.saveConfig();
     }
 }
