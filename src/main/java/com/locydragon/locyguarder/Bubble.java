@@ -6,17 +6,28 @@ import com.locydragon.locyguarder.commands.BubbleCommands;
 import org.bukkit.Bukkit;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Bubble extends JavaPlugin {
     public static ProtocolManager manager;
     public static Bubble instance;
-    public static List<String> safePlayers = null;
+    public static List<String> safePlayers = new ArrayList<>();
+    public static int time = 7;
+    public static String kickMsg = "";
+    public static List<String> info = new ArrayList<>();
+    public static String success;
+    public static String failed;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
         safePlayers = getConfig().getStringList("LegalPlayers");
+        info = getConfig().getStringList("Messages");
+        time = getConfig().getInt("Time");
+        kickMsg = getConfig().getString("KickOut");
+        success = getConfig().getString("Success");
+        failed = getConfig().getString("Failed");
         Bukkit.getPluginCommand("bubble").setExecutor(new BubbleCommands());
         instance = this;
         manager = ProtocolLibrary.getProtocolManager();

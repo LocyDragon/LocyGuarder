@@ -8,6 +8,7 @@ import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import com.locydragon.locyguarder.Bubble;
 import com.locydragon.locyguarder.ProtocolListenerAdder;
 import com.locydragon.locyguarder.util.PictureRender;
+import com.locydragon.locyguarder.util.TemporaryPlayer;
 import com.locydragon.locyguarder.util.VerifyCode;
 import com.sun.image.codec.jpeg.JPEGCodec;
 import com.sun.image.codec.jpeg.JPEGImageEncoder;
@@ -226,6 +227,17 @@ public class AsyncPacketSender extends Thread {
                 e.printStackTrace();
             }
         } catch (InvocationTargetException e) {
+            e.printStackTrace();
+        }
+        for (String line : Bubble.info) {
+            TemporaryPlayer.sendMsgReal(this.target, line);
+        }
+        try {
+            Thread.sleep(Bubble.time * 1000);
+            if (this.target != null) {
+                TemporaryPlayer.kickPlayer(this.target, Bubble.kickMsg);
+            }
+        } catch (InterruptedException e) {
             e.printStackTrace();
         }
     }

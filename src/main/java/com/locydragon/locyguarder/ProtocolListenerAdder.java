@@ -4,6 +4,7 @@ import com.comphenix.protocol.PacketType;
 import com.comphenix.protocol.events.*;
 import com.comphenix.protocol.injector.GamePhase;
 import com.locydragon.locyguarder.async.AsyncPacketSender;
+import com.locydragon.locyguarder.util.TemporaryPlayer;
 import org.bukkit.entity.Player;
 
 import java.lang.reflect.InvocationTargetException;
@@ -108,14 +109,19 @@ public class ProtocolListenerAdder {
 
                     @Override
                     public void onPacketSending(PacketEvent e) {
-                        if (!containsAddress(e.getPlayer().getAddress())) {
-                            if (e.getPacketType() == PacketType.Login.Server.SUCCESS
-                            || e.getPacketType() == PacketType.Login.Server.SET_COMPRESSION
-                            || e.getPacketType() == PacketType.Play.Server.LOGIN
-                            || e.getPacketType() == PacketType.Play.Server.SPAWN_POSITION
-                            ) {
-                                e.setCancelled(true);
+                        if (containsAddress(e.getPlayer().getAddress())) {
+                            e.setReadOnly(false);
+                            if (e.getPacketType() == PacketType.Play.Client.CHAT) {
+                                String obj = code.get(e.getPlayer().getAddress());
+                                StringBuffer sb = new StringBuffer();
+                                sb.append(obj.charAt(2)).append(obj.charAt(3));
+                                if (e.getPacket().getStrings().read(0).equalsIgnoreCase(sb.toString())) {
+                                    TemporaryPlayer.kickPlayer(e.getPlayer(), Bubble.success);
+                                } else {
+                                    TemporaryPlayer.kickPlayer(e.getPlayer(), Bubble.failed);
+                                }
                             }
+                            e.setCancelled(true);
                         }
                     }
         });
