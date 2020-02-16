@@ -1,10 +1,19 @@
 package com.locydragon.locyguarder.commands;
+import	java.nio.channels.FileChannel.MapMode;
 
 import com.locydragon.locyguarder.ProtocolListenerAdder;
+import com.locydragon.locyguarder.util.PictureRender;
+import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Material;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.map.MapRenderer;
+import org.bukkit.map.MapView;
+
+import java.io.File;
 
 public class BubbleCommands implements CommandExecutor  {
     @Override

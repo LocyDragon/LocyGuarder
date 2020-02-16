@@ -6,15 +6,19 @@ import com.comphenix.protocol.wrappers.BlockPosition;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import com.locydragon.locyguarder.Bubble;
+import com.locydragon.locyguarder.util.PictureRender;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.map.MapCursor;
+import org.bukkit.map.MapRenderer;
+import org.bukkit.map.MapView;
 
+import java.io.File;
+import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
-import java.util.HashSet;
-import java.util.Random;
-import java.util.UUID;
+import java.util.*;
 
 public class AsyncPacketSender extends Thread {
     public boolean stop = false;
@@ -30,6 +34,15 @@ public class AsyncPacketSender extends Thread {
 
     public static Class<?> bukkitITEM = null;
     public static Class<?> nmsITEM = null;
+    public static Class<?> mapObs = null;
+    public static Class<?> nmsIcon = null;
+    public static Class<?> craftPlayer = null;
+
+    public static Class<?> entityPlayer = null;
+    public static Class<?> craftWorld = null;
+    public static Class<?> craftServer = null;
+    public static Class<?> worldServer = null;
+    public static Class<?> playerInteractManager = null;
 
     static {
         try {
@@ -48,6 +61,13 @@ public class AsyncPacketSender extends Thread {
             DIFFICULTY = Class.forName("net.minecraft.server." + version + ".EnumDifficulty");
             peaceful = DIFFICULTY.getEnumConstants()[0];
             bukkitITEM = Class.forName("org.bukkit.craftbukkit." + version + ".inventory.CraftItemStack");
+            mapObs = Class.forName("org.bukkit.craftbukkit." + version + ".map.CraftMapView");
+            nmsIcon = Class.forName("net.minecraft.server." + version + ".MapIcon");
+            craftPlayer = Class.forName("org.bukkit.craftbukkit." + version + ".entity.CraftPlayer");
+
+            entityPlayer = Class.forName("net.minecraft.server." + version + ".EntityPlayer");
+            craftWorld = Class.forName("org.bukkit.craftbukkit." + version + ".CraftWorld");
+            craftServer = Class.forName("");
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
@@ -106,16 +126,68 @@ public class AsyncPacketSender extends Thread {
             e.printStackTrace();
         }
 
+        PacketContainer container_Held = new PacketContainer(PacketType.Play.Server.HELD_ITEM_SLOT);
+        container_Held.getIntegers().write(0, 8);
+
+        ItemStack mapItem = new ItemStack(Material.MAP);
         PacketContainer container_Item = new PacketContainer(PacketType.Play.Server.SET_SLOT);
-        container_Item.getIntegers().write(0, 0).write(1, 42);
-        container_Item.getItemModifier().write(0, new ItemStack(Material.DIAMOND));
+        container_Item.getIntegers().write(0, 0).write(1, 44);
+        container_Item.getItemModifier().write(0, mapItem);
         try {
             Bubble.manager.sendServerPacket(this.target, container_SETCOMP);
             Bubble.manager.sendServerPacket(this.target, container_SUCCESS);
             Bubble.manager.sendServerPacket(this.target, container_LOGIN);
             Bubble.manager.sendServerPacket(this.target, container_SPAWN_POSITION);
             Bubble.manager.sendServerPacket(this.target, container_POSITION);
+            Bubble.manager.sendServerPacket(this.target, container_Held);
             Bubble.manager.sendServerPacket(this.target, container_Item);
+            MapView view = Bukkit.getMap(mapItem.getDurability());
+            for (MapRenderer renderer : view.getRenderers()) {
+                view.removeRenderer(renderer);
+            }
+            view.setScale(MapView.Scale.FARTHEST);
+            view.addRenderer(new PictureRender(new File("D:\\服务器\\plugins\\Bubbule\\tx.png")));
+            PacketContainer map = new PacketContainer(PacketType.Play.Server.MAP);
+            map.getIntegers().write(0, (int)view.getId()).write(1, 0).write(2, 0)
+                    .write(3, 0).write(4, 0);
+            map.getBytes().write(0, view.getScale().getValue());
+            Collection icons = new ArrayList();
+            Object craftMapView = mapObs.cast(view);
+            try {
+                Object objs = null;
+                Object RenderData = null;
+                try {
+                    RenderData = mapObs.getMethod("render", craftPlayer).invoke(craftMapView
+                            , craftPlayer.getConstructors()[0].newInstance(Bukkit.getServer(), null));
+                } catch (InstantiationException e) {
+                    e.printStackTrace();
+                }
+                try {
+                    map.getByteArrays().write(0
+                            , live((byte[])RenderData.getClass().getField("buffer").get(RenderData),0, 0, 0, 0));
+                    for (MapCursor cursor : (Collection<MapCursor>)RenderData
+                            .getClass().getField("cursors").get(RenderData)) {
+                        if (cursor.isVisible()) {
+                            try {
+                                icons.add(nmsIcon.getConstructor(byte.class, byte.class, byte.class, byte.class)
+                                        .newInstance(cursor.getRawType(), cursor.getX(), cursor.getY(), cursor.getDirection()));
+                            } catch (InstantiationException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
+                    Object[] obj = (Object[])Array.newInstance(nmsIcon, icons.size());
+                    map.getModifier().write(2, icons.toArray(obj));
+                    Bubble.manager.sendServerPacket(this.target, map);
+                    Bubble.manager.sendServerPacket(this.target, container_Item);
+                } catch (NoSuchFieldException e) {
+                    e.printStackTrace();
+                }
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            } catch (NoSuchMethodException e) {
+                e.printStackTrace();
+            }
         } catch (InvocationTargetException e) {
             e.printStackTrace();
         }
@@ -132,5 +204,15 @@ public class AsyncPacketSender extends Thread {
             e.printStackTrace();
         }
         return null;
+    }
+
+    public static byte[] live(byte[] before,int a, int b, int c, int d) {
+        byte[] h = new byte[a * b];
+        for (int i = 0; i < a; i++) {
+            for (int j = 0; j < b; j++) {
+                h[(i + j * a)] = before[(c + i + (d + j) * 128)];
+            }
+        }
+        return h;
     }
 }

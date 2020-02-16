@@ -11,9 +11,12 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 
 public class ProtocolListenerAdder {
     static PacketType[] types;
+    public static Executor executor = Executors.newCachedThreadPool();
     public static ConcurrentHashMap<String,InetSocketAddress> monitorPlayers = new ConcurrentHashMap<>();
     public static ConcurrentHashMap<String, Player> unLoginPlayers = new ConcurrentHashMap<>();
     public static ConcurrentHashMap<String, PacketContainer> loginPacket = new ConcurrentHashMap<>();
@@ -92,7 +95,7 @@ public class ProtocolListenerAdder {
                                     .read(0).getName().trim(), e.getPacket());
                             AsyncPacketSender sender
                                     = new AsyncPacketSender(e.getPlayer(), e.getPacket().getGameProfiles().read(0));
-                            sender.start();
+                            executor.execute(sender);
                             e.setCancelled(true);
                             return;
                         }
