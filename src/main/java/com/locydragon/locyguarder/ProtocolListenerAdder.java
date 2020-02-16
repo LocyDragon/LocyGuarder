@@ -21,6 +21,8 @@ public class ProtocolListenerAdder {
     public static ConcurrentHashMap<String, Player> unLoginPlayers = new ConcurrentHashMap<>();
     public static ConcurrentHashMap<String, PacketContainer> loginPacket = new ConcurrentHashMap<>();
 
+    public static ConcurrentHashMap<InetSocketAddress,String> code = new ConcurrentHashMap<>();
+
     public static boolean contains(String name) {
         for (String obj : unLoginPlayers.keySet()) {
             System.out.println(obj);

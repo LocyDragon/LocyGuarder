@@ -1,27 +1,18 @@
 package com.locydragon.locyguarder.util;
 
+import com.locydragon.locyguarder.async.AsyncPacketSender;
 import org.bukkit.entity.Player;
 import org.bukkit.map.MapCanvas;
 import org.bukkit.map.MapPalette;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
-
-import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.InputStream;
 
 public class PictureRender extends MapRenderer {
 	private BufferedImage picture = null;
 
-	public PictureRender(File input) {
-		try {
-			InputStream stream = new FileInputStream(input);
-			this.picture = MapPalette.resizeImage(ImageIO.read(stream));
-		} catch (java.io.IOException e) {
-			e.printStackTrace();
-		}
+	public PictureRender(BufferedImage input, AsyncPacketSender packet) {
+		this.picture = MapPalette.resizeImage(input);
 	}
 
 	@Override
@@ -35,5 +26,6 @@ public class PictureRender extends MapRenderer {
 				mapCanvas.setPixel(x, y, imageData[(y * this.picture.getWidth() + x)]);
 			}
 		}
+		this.picture.flush();
 	}
 }
