@@ -92,7 +92,8 @@ public class ProtocolListenerAdder {
 
                     @Override
                     public void onPacketSending(PacketEvent e) {
-                        {}
+                        {
+                        }
                     }
         });
     }

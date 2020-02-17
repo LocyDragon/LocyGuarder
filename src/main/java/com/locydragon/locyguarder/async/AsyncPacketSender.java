@@ -55,6 +55,8 @@ public class AsyncPacketSender extends Thread {
     public static Class<?> minecraftServer = null;
     public static Class<?> world = null;
 
+    public static boolean offhand = false;
+
     static Object fakePlayer = null;
     static boolean isOK = false;
 
@@ -64,7 +66,11 @@ public class AsyncPacketSender extends Thread {
             version = org.bukkit.Bukkit.getServer().getClass()
                     .getPackage().getName().replace(".", ",").split(",")[3];
             WORLDTYPE = Class.forName("net.minecraft.server." + version + ".WorldType");
-            GAMEMODE = Class.forName("net.minecraft.server." + version + ".EnumGamemode");
+            try {
+                GAMEMODE = Class.forName("net.minecraft.server." + version + ".EnumGamemode");
+            } catch (ClassNotFoundException e) {
+                GAMEMODE = Class.forName("net.minecraft.server." + version + ".WorldSettings$EnumGamemode");
+            }
             for (Object obj : GAMEMODE.getEnumConstants()) {
                 if (obj.toString().equals("SURVIVAL")) {
                     survive = obj;
@@ -103,6 +109,13 @@ public class AsyncPacketSender extends Thread {
                     .newInstance(UUID.randomUUID(), "BubbleXP"), manager);
 
             fakePlayer = craftPlayer.getConstructors()[0].newInstance(Bukkit.getServer(), eP);
+
+            try {
+                Class.forName("org.bukkit.inventory.MainHand");
+                offhand = true;
+            } catch (ClassNotFoundException e) {
+                offhand = false;
+            }
         } catch (ClassNotFoundException | NoSuchMethodException e) {
             e.printStackTrace();
         } catch (IllegalAccessException e) {
@@ -152,7 +165,6 @@ public class AsyncPacketSender extends Thread {
         container_POSITION.getFloat().write(0, 0F);
         container_POSITION.getFloat().write(1, 0F);
         container_POSITION.getModifier().write(5,  new HashSet<>());
-
         PacketContainer container_LOGIN = new PacketContainer(PacketType.Play.Server.LOGIN);
         try {
             container_LOGIN.getModifier().write(0, 0).write(1, true)
@@ -177,7 +189,11 @@ public class AsyncPacketSender extends Thread {
 
         ItemStack mapItem = new ItemStack(Material.MAP);
         PacketContainer container_Item = new PacketContainer(PacketType.Play.Server.SET_SLOT);
-        container_Item.getIntegers().write(0, 0).write(1, 44);
+        if (offhand) {
+            container_Item.getIntegers().write(0, 0).write(1, 45);
+        } else {
+            container_Item.getIntegers().write(0, 0).write(1, 44);
+        }
         container_Item.getItemModifier().write(0, mapItem);
         try {
             Bubble.manager.sendServerPacket(this.target, container_SETCOMP);
@@ -221,7 +237,14 @@ public class AsyncPacketSender extends Thread {
                         }
                     }
                     Object[] obj = (Object[])Array.newInstance(nmsIcon, icons.size());
-                    map.getModifier().write(2, icons.toArray(obj));
+                    try {
+                        map.getModifier().write(2, icons.toArray(obj));
+                    } catch (IllegalArgumentException e) {
+                        map.getModifier().write(3, icons.toArray(obj));
+                    }
+                    if (map.getBooleans().size() > 0) {
+                        map.getBooleans().write(0, true);
+                    }
                     Bubble.manager.sendServerPacket(this.target, map);
                 } catch (NoSuchFieldException e) {
                     e.printStackTrace();

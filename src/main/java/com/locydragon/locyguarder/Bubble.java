@@ -42,7 +42,7 @@ public class Bubble extends JavaPlugin {
 
     public static void addSafePlayer(String who) {
         safePlayers.add(who);
-        instance.getConfig().set("LegalPlayers", who);
+        instance.getConfig().set("LegalPlayers", safePlayers);
         instance.saveConfig();
     }
 }
