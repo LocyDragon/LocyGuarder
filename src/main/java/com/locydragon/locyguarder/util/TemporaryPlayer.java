@@ -10,15 +10,25 @@ import org.bukkit.entity.Player;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 public class TemporaryPlayer {
     static Class<?> craftChat = null;
+    static Class<?> chat = null;
+    static Object chatObj = null;
 
     static {
         try {
             craftChat = Class.forName("org.bukkit.craftbukkit." + AsyncPacketSender.version + ".util.CraftChatMessage");
+            try {
+                chat = Class.forName("net.minecraft.server." + AsyncPacketSender.version + ".ChatMessageType");
+                for (Object obj : chat.getEnumConstants()) {
+                    if (obj.toString().equals("CHAT")) {
+                        chatObj = obj;
+                        break;
+                    }
+                }
+            } catch (ClassNotFoundException e) {}
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         }
@@ -42,7 +52,11 @@ public class TemporaryPlayer {
                     .invoke(null, ChatColor.translateAlternateColorCodes('&', msg))) {
                 PacketContainer message = new PacketContainer(PacketType.Play.Server.CHAT);
                 message.getModifier().write(0, obj);
-                message.getBytes().write(0, (byte) 1);
+                if (chatObj == null) {
+                    message.getBytes().write(0, (byte) 1);
+                } else {
+                    message.getModifier().write(2, chatObj);
+                }
                 try {
                     Bubble.manager.sendServerPacket(temp, message);
                 } catch (InvocationTargetException e) {
