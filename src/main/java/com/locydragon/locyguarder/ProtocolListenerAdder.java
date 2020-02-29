@@ -75,19 +75,36 @@ public class ProtocolListenerAdder {
                             StringBuffer sb = new StringBuffer();
                             sb.append(obj.charAt(2)).append(obj.charAt(3));
                             if (e.getPacket().getStrings().read(0).equalsIgnoreCase(sb.toString())) {
+                                e.setReadOnly(false);
                                 e.setCancelled(true);
-                                TemporaryPlayer.kickPlayer(e.getPlayer(), Bubble.success);
+                                executor.execute(() -> {
+                                    try {
+                                        Thread.sleep(1000);
+                                    } catch (InterruptedException ex) {
+                                        ex.printStackTrace();
+                                    }
+                                    TemporaryPlayer.kickPlayer(e.getPlayer(), Bubble.success);
+                                });
                                 Bubble.addSafePlayer(name.get(e.getPlayer().getAddress()));
                                 remove(e.getPlayer());
                                 return;
                             } else {
+                                e.setReadOnly(false);
                                 e.setCancelled(true);
-                                TemporaryPlayer.kickPlayer(e.getPlayer(), Bubble.failed);
+                                executor.execute(() -> {
+                                    try {
+                                        Thread.sleep(1000);
+                                    } catch (InterruptedException ex) {
+                                        ex.printStackTrace();
+                                    }
+                                    TemporaryPlayer.kickPlayer(e.getPlayer(), Bubble.failed);
+                                });
                                 remove(e.getPlayer());
                                 return;
                             }
                         }
                         if (containsAddress(e.getPlayer().getAddress())) {
+                            e.setReadOnly(false);
                             e.setCancelled(true);
                         }
                     }
