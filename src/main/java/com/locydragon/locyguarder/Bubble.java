@@ -25,6 +25,9 @@ public class Bubble extends JavaPlugin {
         safePlayers = getConfig().getStringList("LegalPlayers");
         info = getConfig().getStringList("Messages");
         time = getConfig().getInt("Time");
+        if (time >= 18) {
+            time = 18;
+        }
         kickMsg = getConfig().getString("KickOut");
         success = getConfig().getString("Success");
         failed = getConfig().getString("Failed");

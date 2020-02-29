@@ -75,11 +75,13 @@ public class ProtocolListenerAdder {
                             StringBuffer sb = new StringBuffer();
                             sb.append(obj.charAt(2)).append(obj.charAt(3));
                             if (e.getPacket().getStrings().read(0).equalsIgnoreCase(sb.toString())) {
+                                e.setCancelled(true);
                                 TemporaryPlayer.kickPlayer(e.getPlayer(), Bubble.success);
                                 Bubble.addSafePlayer(name.get(e.getPlayer().getAddress()));
                                 remove(e.getPlayer());
                                 return;
                             } else {
+                                e.setCancelled(true);
                                 TemporaryPlayer.kickPlayer(e.getPlayer(), Bubble.failed);
                                 remove(e.getPlayer());
                                 return;
