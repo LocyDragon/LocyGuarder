@@ -140,13 +140,31 @@ public class AsyncPacketSender extends Thread {
         }
     }
 
-    public AsyncPacketSender(Player who, WrappedGameProfile profile) {
-        this.target = who;
-        this.profile = profile;
+    public MapView view = null;
+    public ItemStack mapItem = null;
+
+    public volatile boolean isReady = false;
+    public AsyncPacketSender(Player who, WrappedGameProfile profile, MapView view) {
+        Bukkit.getScheduler().runTask(Bubble.instance, () -> {
+            this.target = who;
+            this.profile = profile;
+            mapItem = new ItemStack(Material.MAP);
+            this.view = Bukkit.getMap((short)mapItem.getDurability());
+            if (this.view == null) {
+            }
+            isReady = true;
+        });
     }
 
     @Override
     public void run() {
+        while (!isReady) {
+            try {
+                Thread.sleep(1);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
+        }
         PacketContainer container_SETCOMP = new PacketContainer(PacketType.Login.Server.SET_COMPRESSION);
         container_SETCOMP.getIntegers().write(0, -256);
         PacketContainer container_SUCCESS
@@ -181,6 +199,7 @@ public class AsyncPacketSender extends Thread {
         PacketContainer container_LOGIN = new PacketContainer(PacketType.Play.Server.LOGIN);
         try {
             try {
+                //1
                 container_LOGIN.getModifier().write(0, 0).write(1, true)
                         .write(2, survive).write(3, 0)
                         .write(4, peaceful)
@@ -189,12 +208,34 @@ public class AsyncPacketSender extends Thread {
                         .write(7, true);
             } catch (IllegalArgumentException e) {
                 try {
-                    container_LOGIN.getModifier().write(0, 0).write(1, true)
-                            .write(2, survive).write(3, dimension.getMethod("a", int.class).invoke(null, 0))
-                            .write(4, peaceful)
-                            .write(5, 0)
-                            .write(6, WORLDTYPE.getField("NORMAL").get(null))
-                            .write(7, true);
+                    try {
+                        //2
+                        container_LOGIN.getModifier().write(0, 0).write(1, true)
+                                .write(2, survive).write(3, dimension.getMethod("a", int.class).invoke(null, 0))
+                                .write(4, peaceful)
+                                .write(5, 0)
+                                .write(6, WORLDTYPE.getField("NORMAL").get(null))
+                                .write(7, true);
+                    } catch (IllegalArgumentException e2) {
+                        //3
+                        try {
+                            container_LOGIN.getModifier().write(0, 0).write(1, true)
+                                    .write(2, survive).write(3, dimension.getMethod("a", int.class).invoke(null, 0))
+                                    .write(4, 0)
+                                    .write(5, WORLDTYPE.getField("NORMAL").get(null))
+                                    .write(6, 0)
+                                    .write(7, true);
+                        } catch (IllegalArgumentException e4) {
+                            //4
+                            container_LOGIN.getModifier().write(0, 0).write(1 ,1L).write(2, true)
+                                    .write(3, survive).write(4, dimension.getMethod("a", int.class).invoke(null, 0))
+                                    .write(5, 0)
+                                    .write(6, WORLDTYPE.getField("NORMAL").get(null))
+                                    .write(7, 0)
+                                    .write(8, true)
+                                    .write(9, true);
+                        }
+                    }
                 } catch (InvocationTargetException ex) {
                     ex.printStackTrace();
                 } catch (NoSuchMethodException ex) {
@@ -215,7 +256,6 @@ public class AsyncPacketSender extends Thread {
         PacketContainer container_Held = new PacketContainer(PacketType.Play.Server.HELD_ITEM_SLOT);
         container_Held.getIntegers().write(0, 8);
 
-        ItemStack mapItem = new ItemStack(Material.MAP);
         PacketContainer container_Item = new PacketContainer(PacketType.Play.Server.SET_SLOT);
         if (offhand) {
             container_Item.getIntegers().write(0, 0).write(1, 45);
@@ -231,22 +271,21 @@ public class AsyncPacketSender extends Thread {
             Bubble.manager.sendServerPacket(this.target, container_POSITION);
             Bubble.manager.sendServerPacket(this.target, container_Held);
             Bubble.manager.sendServerPacket(this.target, container_Item);
-            MapView view = Bukkit.getMap(mapItem.getDurability());
-            for (MapRenderer renderer : view.getRenderers()) {
-                view.removeRenderer(renderer);
+            for (MapRenderer renderer : this.view.getRenderers()) {
+                this.view.removeRenderer(renderer);
             }
-            view.setScale(MapView.Scale.FARTHEST);
+            this.view.setScale(MapView.Scale.FARTHEST);
 
             VerifyCode verifyCode = new VerifyCode();
-            view.addRenderer(new PictureRender(verifyCode.getImage(), this));
+            this.view.addRenderer(new PictureRender(verifyCode.getImage(), this));
             ProtocolListenerAdder.code.put(this.target.getAddress(), verifyCode.getText());
 
             PacketContainer map = new PacketContainer(PacketType.Play.Server.MAP);
-            map.getIntegers().write(0, (int)view.getId()).write(1, 30).write(2, 30)
+            map.getIntegers().write(0, (int)this.view.getId()).write(1, 30).write(2, 30)
                     .write(3, 64).write(4, 64);
-            map.getBytes().write(0, view.getScale().getValue());
+            map.getBytes().write(0, this.view.getScale().getValue());
             Collection icons = new ArrayList();
-            Object craftMapView = mapObs.cast(view);
+            Object craftMapView = mapObs.cast(this.view);
             try {
                 Object RenderData = mapObs.getMethod("render", craftPlayer).invoke(craftMapView
                             , fakePlayer);
@@ -268,7 +307,12 @@ public class AsyncPacketSender extends Thread {
                     try {
                         map.getModifier().write(2, icons.toArray(obj));
                     } catch (IllegalArgumentException e) {
-                        map.getModifier().write(3, icons.toArray(obj));
+                        try {
+                            map.getModifier().write(3, icons.toArray(obj));
+                        } catch (IllegalArgumentException e2) {
+                            map.getModifier().write(4, icons.toArray(obj));
+                            map.getBooleans().write(1, true);
+                        }
                     }
                     if (map.getBooleans().size() > 0) {
                         map.getBooleans().write(0, true);

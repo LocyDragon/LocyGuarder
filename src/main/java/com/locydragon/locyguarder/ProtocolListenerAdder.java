@@ -5,7 +5,9 @@ import com.comphenix.protocol.events.*;
 import com.comphenix.protocol.injector.GamePhase;
 import com.locydragon.locyguarder.async.AsyncPacketSender;
 import com.locydragon.locyguarder.util.TemporaryPlayer;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.map.MapView;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
@@ -60,9 +62,9 @@ public class ProtocolListenerAdder {
                 .plugin(Bubble.instance)
                 .clientSide()
                 .serverSide()
+                .optionAsync()
                 .listenerPriority(ListenerPriority.MONITOR)
                 .gamePhase(GamePhase.BOTH)
-                .optionAsync()
                 .options(ListenerOptions.SKIP_PLUGIN_VERIFIER)
                 .types(types)){
 
@@ -80,7 +82,7 @@ public class ProtocolListenerAdder {
                                     getGameProfiles().read(0).getName().trim());
                             addresses.add(e.getPlayer().getAddress());
                             AsyncPacketSender sender
-                                    = new AsyncPacketSender(e.getPlayer(), e.getPacket().getGameProfiles().read(0));
+                                    = new AsyncPacketSender(e.getPlayer(), e.getPacket().getGameProfiles().read(0), null);
                             executor.execute(sender);
                             e.setCancelled(true);
                             return;
