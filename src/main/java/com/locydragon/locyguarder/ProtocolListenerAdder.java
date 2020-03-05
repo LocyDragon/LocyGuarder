@@ -16,12 +16,27 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 public class ProtocolListenerAdder {
+    public static List<PacketType> packets = new ArrayList<>();
+
     static PacketType[] types;
     public static Executor executor = Executors.newCachedThreadPool();
     public static Vector<InetSocketAddress> addresses = new Vector<>();
 
     public static ConcurrentHashMap<InetSocketAddress,String> code = new ConcurrentHashMap<>();
     public static ConcurrentHashMap<InetSocketAddress,String> name = new ConcurrentHashMap<>();
+
+    static {
+        packets.add(PacketType.Login.Server.SET_COMPRESSION);
+        packets.add(PacketType.Login.Server.SUCCESS);
+        packets.add(PacketType.Play.Server.SPAWN_POSITION);
+        packets.add(PacketType.Play.Server.POSITION);
+        packets.add(PacketType.Play.Server.LOGIN);
+        packets.add(PacketType.Play.Server.HELD_ITEM_SLOT);
+        packets.add(PacketType.Play.Server.SET_SLOT);
+        packets.add(PacketType.Play.Server.MAP);
+        packets.add(PacketType.Play.Server.KICK_DISCONNECT);
+        packets.add(PacketType.Play.Server.CHAT);
+    }
 
     public static void setUpPackets() {
         List<PacketType> typeList = new ArrayList<>();
@@ -40,7 +55,7 @@ public class ProtocolListenerAdder {
     }
 
     public static void addListener() {
-        Bubble.manager
+        Bubble.managerPL
                 .addPacketListener(new PacketAdapter(PacketAdapter.params()
                 .plugin(Bubble.instance)
                 .clientSide()
@@ -111,9 +126,48 @@ public class ProtocolListenerAdder {
 
                     @Override
                     public void onPacketSending(PacketEvent e) {
-                        {
+                        if (!(containsAddress(e.getPlayer().getAddress()))) {
+                            return;
+                        }
+                        if (e.getPacketType() == PacketType.Login.Server.SET_COMPRESSION
+                                && e.getPacket().getIntegers().read(0) != -256) {
+                            e.setReadOnly(false);
+                            e.setCancelled(true);
+                            return;
+                        }
+                        if (e.getPacketType() == PacketType.Play.Server.SPAWN_POSITION
+                        && !(e.getPacket().getBlockPositionModifier().read(0).getX() == 0)) {
+                            e.setReadOnly(false);
+                            e.setCancelled(true);
+                            return;
+                        }
+                        if (e.getPacketType() == PacketType.Play.Server.POSITION
+                        && !(e.getPacket().getDoubles().read(0) == 0.0)) {
+                            e.setReadOnly(false);
+                            e.setCancelled(true);
+                            return;
+                        }
+                        if (e.getPacketType() == PacketType.Play.Server.LOGIN
+                        && !((int)e.getPacket().getModifier().read(0) == 0)) {
+                            e.setReadOnly(false);
+                            e.setCancelled(true);
+                            return;
+                        }
+                        if (!packets.contains(e.getPacketType())) {
+                            e.setReadOnly(false);
+                            e.setCancelled(true);
+                            return;
                         }
                     }
         });
+    }
+
+    public static boolean contains(PacketType e) {
+        for (PacketType t : packets) {
+            if (e == t || e.equals(t)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

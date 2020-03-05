@@ -20,13 +20,9 @@ import org.bukkit.map.MapCursor;
 import org.bukkit.map.MapRenderer;
 import org.bukkit.map.MapView;
 
-import java.awt.*;
-import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 import java.lang.reflect.Array;
 import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.*;
 
 public class AsyncPacketSender extends Thread {
@@ -54,6 +50,8 @@ public class AsyncPacketSender extends Thread {
     public static Class<?> playerInteractManager = null;
     public static Class<?> minecraftServer = null;
     public static Class<?> world = null;
+
+    public static Class<?> dimension = null;
 
     public static boolean offhand = false;
 
@@ -93,6 +91,10 @@ public class AsyncPacketSender extends Thread {
             minecraftServer = Class.forName("net.minecraft.server." + version + ".MinecraftServer");
             world = Class.forName("net.minecraft.server." + version + ".World");
 
+            try {
+                dimension = Class.forName("net.minecraft.server." + version + ".DimensionManager");
+            } catch (Exception exc) {}
+
             Object cw = craftWorld.cast(Bukkit.getWorlds().get(0));
             Object ws = craftWorld.getMethod("getHandle").invoke(cw);
             Object cs = craftServer.cast(Bukkit.getServer());
@@ -100,8 +102,19 @@ public class AsyncPacketSender extends Thread {
             try {
                 manager = playerInteractManager.getConstructor(worldServer).newInstance(ws);
             } catch (NoSuchMethodException e) {
-                manager = playerInteractManager.getConstructor(world).newInstance(worldServer.getMethod("b").invoke(ws));
+                try {
+                    manager = playerInteractManager.getConstructor(world).newInstance(worldServer.getMethod("b").invoke(ws));
+                } catch (NoSuchMethodException ex) {
+                    Method method = null;
+                    for (Method methods : worldServer.getMethods()) {
+                        if (methods.getReturnType().equals(world) || methods.getReturnType() == world) {
+                            method = methods;
+                        }
+                    }
+                    manager = playerInteractManager.getConstructor(world).newInstance(method.invoke(ws));
+                }
             }
+
             Object eP = entityPlayer.getConstructor(minecraftServer, worldServer
                     , Class.forName("com.mojang.authlib.GameProfile"), playerInteractManager)
                     .newInstance(craftServer.getMethod("getServer").invoke(cs)
@@ -167,12 +180,27 @@ public class AsyncPacketSender extends Thread {
         container_POSITION.getModifier().write(5,  new HashSet<>());
         PacketContainer container_LOGIN = new PacketContainer(PacketType.Play.Server.LOGIN);
         try {
-            container_LOGIN.getModifier().write(0, 0).write(1, true)
-                    .write(2, survive).write(3, 0)
-                    .write(4, peaceful)
-                    .write(5, 0)
-                    .write(6, WORLDTYPE.getField("NORMAL").get(null))
-                    .write(7, true);
+            try {
+                container_LOGIN.getModifier().write(0, 0).write(1, true)
+                        .write(2, survive).write(3, 0)
+                        .write(4, peaceful)
+                        .write(5, 0)
+                        .write(6, WORLDTYPE.getField("NORMAL").get(null))
+                        .write(7, true);
+            } catch (IllegalArgumentException e) {
+                try {
+                    container_LOGIN.getModifier().write(0, 0).write(1, true)
+                            .write(2, survive).write(3, dimension.getMethod("a", int.class).invoke(null, 0))
+                            .write(4, peaceful)
+                            .write(5, 0)
+                            .write(6, WORLDTYPE.getField("NORMAL").get(null))
+                            .write(7, true);
+                } catch (InvocationTargetException ex) {
+                    ex.printStackTrace();
+                } catch (NoSuchMethodException ex) {
+                    ex.printStackTrace();
+                }
+            }
         } catch (IllegalAccessException e) {
             e.printStackTrace();
         } catch (NoSuchFieldException e) {
